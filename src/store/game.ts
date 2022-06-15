@@ -1,13 +1,15 @@
+import { message } from "antd";
 import { action, makeObservable, observable, runInAction } from "mobx";
-import { io, Socket } from "socket.io-client";
-import { SERVER_URL } from "../api/base";
-import { getRoom, startGame } from "../api/rooms";
+import { isErrorResponse } from "../api/base";
+import { getRoom, getSong, startGame } from "../api/rooms";
+import { Sample } from "../audio/Sample";
+import { SocketClient } from "../socket/socket-types";
 import Player from "../types/Player";
+import tracks from "./tracks";
 
 class Game {
   @observable loading: boolean = false;
   @observable error: any = "";
-
   @observable name: string = "";
   @observable maximumPlayers: number = 0;
   @observable roundTime: number = 0;
@@ -15,45 +17,48 @@ class Game {
   @observable currentRound: number = 0;
   @observable code: string = "";
   @observable players: Player[] = [];
+  @observable isEnded: boolean = false;
+  @observable currentTime: number = 0;
+  @observable rounds: {
+    player: string;
+    song: string;
+    sent: boolean;
+  }[][] = [];
+  @observable songs: Record<string, { player: string; url: string }[]> = {};
 
-  socket: Socket | null = null;
+  socket: SocketClient | null = null;
 
   constructor() {
     makeObservable(this);
   }
 
-  @action async loadRoom(roomCode: string) {
-    this.loading = true;
-
+  @action async loadRoom() {
     try {
-      const room = await getRoom(roomCode);
+      const room = await getRoom();
+
+      if (isErrorResponse(room)) {
+        message.error(room.message);
+        return;
+      }
+
       runInAction(() => this.set({ loading: false, ...room }));
     } catch (e) {
+      console.log(e);
       runInAction(() => this.set({ loading: false, error: e }));
     }
   }
 
-  @action connect(token: string) {
-    this.socket = io(SERVER_URL, { auth: { token } });
-    this.addSocketHandlers();
-  }
-
-  @action disconnect() {
-    this.socket?.disconnect();
-    this.socket = null;
-  }
-
   @action start() {
-    startGame(this.code);
-  }
-
-  @action set(values: Partial<Game>) {
-    Object.assign(this, values);
+    startGame();
   }
 
   isOwner(playerName: string) {
     const owner = this.players.find((player) => player.isOwner);
     return playerName === owner?.name;
+  }
+
+  @action set(values: Partial<Game>) {
+    Object.assign(this, values);
   }
 
   @action clear() {
@@ -64,6 +69,30 @@ class Game {
     this.players = [];
     this.isStarted = false;
     this.currentRound = 0;
+    this.endTimer();
+  }
+
+  @action async loadRoundSong() {
+    const response = await getSong();
+
+    if (isErrorResponse(response)) {
+      message.error(response.message);
+      return;
+    }
+
+    if (response.url === "FIRST_ROUND") return;
+
+    tracks.addTrack();
+
+    const sample = await Sample.loadFromUrl(
+      response.url,
+      response.url,
+      tracks.tracks[0]
+    );
+
+    if (!sample) {
+      message.warning("Error loading previous version of the song");
+    }
   }
 
   @action addPlayer(player: Player) {
@@ -73,7 +102,7 @@ class Game {
   @action updatePlayer(playerToUpdate: Player) {
     this.players = this.players.map((player) => {
       if (player.name === playerToUpdate.name) {
-        player = { ...player, ...playerToUpdate };
+        Object.assign(player, playerToUpdate);
       }
 
       return player;
@@ -86,30 +115,20 @@ class Game {
     this.players.splice(playerIndex, 1);
   }
 
-  private addSocketHandlers() {
-    this.socket?.onAny((message, data) => {
-      console.log(message, data);
-    });
-
-    this.socket?.on("player-connected", (player: Player) => {
-      this.addPlayer(player);
-    });
-
-    this.socket?.on("player-updated", (updatedPlayer: Player) => {
-      this.updatePlayer(updatedPlayer);
-    });
-
-    this.socket?.on("player-disconnected", (player: Player) => {
-      this.removePlayer(player);
-    });
-
-    this.socket?.on(
-      "round-started",
-      ({ currentRound }: { currentRound: number }) => {
-        this.isStarted = true;
-        this.currentRound = currentRound;
-      }
+  private timer: NodeJS.Timer | null = null;
+  @action startTimer(elapsed: number) {
+    this.currentTime = elapsed;
+    this.timer = setInterval(
+      action(() => {
+        this.currentTime += 1;
+      }),
+      1000
     );
+  }
+
+  @action endTimer() {
+    if (this.timer) clearInterval(this.timer);
+    this.currentTime = 0;
   }
 }
 

@@ -1,5 +1,39 @@
-@import '../editor-main.scss';
+@import "../editor-main.scss";
+
+.editor-tracks-controls {
+  background-color: #9e9e9e;
+}
 
 .track-controls {
   height: $track-height;
+  padding-left: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.add-track-btn {
+  width: 100%;
+  height: $track-height;
+
+  &:hover {
+    background-color: #f4f4f4;
+  }
+}
+
+.track-control-label {
+  text-align: center;
+  font-size: 10px;
+
+  display: inline-block;
+  width: 100%;
+}
+
+.track-buttons {
+  .btn {
+    height: calc($track-height / 3);
+    width: calc($track-height / 3);
+
+    display: grid;
+    place-items: center;
+  }
 }

@@ -1,0 +1,28 @@
+.lobby-options {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 10px 20px;
+}
+
+.lobby-options-middle-section {
+  display: flex;
+  justify-items: center;
+  align-items: center;
+}
+
+.lobby-options-player-count {
+  font-weight: bold;
+  font-size: large;
+  margin-right: 15px;
+}
+
+.lobby-options-close-btn {
+  color: red;
+}
+
+.lobby-options-play-btn {
+  color: green;
+}

@@ -1,27 +1,36 @@
-import { Offline, Player, ToneAudioBuffer } from "tone";
-import { samples } from "../store/samples";
+import { Channel, Offline, Player, ToneAudioBuffer } from "tone";
+import tracks from "../store/tracks";
 
 export const render = async () => {
   const buffer = await Offline(({ transport }) => {
-    const offlineSamples = samples.samples.map((onlineSample) => {
-      const player = new Player();
+    tracks.tracks.forEach((track) => {
+      const channel = new Channel(track.volume, track.pan);
 
-      player.buffer = onlineSample.player.buffer;
-      player
-        .toDestination()
-        .sync()
-        .start(onlineSample.position, onlineSample.offset, onlineSample.length);
+      channel.solo = track.solo;
+      channel.mute = track.mute;
+      channel.toDestination();
+
+      track.samples.forEach((sample) => {
+        const player = new Player();
+
+        player.buffer = sample.player.buffer;
+        player
+          .connect(channel)
+          .sync()
+          .start(sample.position, sample.offset, sample.length);
+      });
     });
 
     transport.start();
   }, 30);
 
-  const audioURL = URL.createObjectURL(bufferToWave(buffer, buffer.length));
+  const audioBlob = bufferToWave(buffer, buffer.length);
 
-  const anchor = document.createElement("a");
-  anchor.download = "rendered.webm";
-  anchor.href = audioURL;
-  anchor.click();
+  const formData = new FormData();
+
+  formData.append("file", audioBlob);
+
+  return formData;
 };
 
 function bufferToWave(abuffer: ToneAudioBuffer, len: number) {

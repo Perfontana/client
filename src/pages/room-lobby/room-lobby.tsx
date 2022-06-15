@@ -1,26 +1,39 @@
-import { Modal, Spin } from "antd";
+import { Modal } from "antd";
 import { observer } from "mobx-react-lite";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import ConnectToRoomForm from "../../components/connect-to-room-form/connect-to-room-form";
+import ConnectToRoomModal from "../../components/connect-to-room-modal/connect-to-room-modal";
 import Lobby from "../../components/lobby/lobby";
+import { socketConnection } from "../../socket";
 import auth from "../../store/auth";
-import game from "../../store/game";
 
 const RoomLobby = () => {
   const { code } = useParams();
   const navigate = useNavigate();
 
+  const onRoundStart = useCallback(() => {
+    navigate(`/room/${code}/editor`);
+  }, [code]);
+
   useEffect(() => {
-    if (game.isStarted) navigate(`/room/${code}/editor`);
-  }, [game.isStarted, navigate, code]);
+    socketConnection.on("round-started", onRoundStart);
+
+    return () => {
+      socketConnection.on("round-started", onRoundStart);
+    };
+  }, [onRoundStart]);
 
   return (
     <div className="lobby">
-      <Modal title="Please write your name" visible={!auth.token}>
-        <ConnectToRoomForm roomCode={code || ""} />
+      <Modal
+        title="Please write your name"
+        closable={false}
+        footer={null}
+        visible={!auth.token}
+      >
+        <ConnectToRoomModal roomCode={code || ""} />
       </Modal>
-      {!auth.token ? <Spin /> : <Lobby roomCode={code || ""} />}
+      {!auth.token ? null : <Lobby />}
     </div>
   );
 };

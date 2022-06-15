@@ -1,0 +1,53 @@
+.knob {
+  position: relative;
+
+  cursor: n-resize;
+}
+
+.knob-slider {
+  position: absolute;
+
+  width: 200% !important;
+  height: 200% !important;
+  border-radius: 50%;
+
+  display: grid;
+  place-items: center;
+
+  opacity: 0;
+
+  transform: translate(-45%, -45%);
+
+  .ant-slider-handle {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+.knob-circle {
+  margin: 0;
+  display: block;
+
+  position: relative;
+
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+
+  background-color: #333333;
+
+  overflow: hidden;
+}
+
+.knob-indicator {
+  top: 50%;
+  position: absolute;
+
+  display: block;
+
+  transform: translate(0, -50%);
+
+  width: 13px;
+  height: 2px;
+  background-color: #d4d4d4;
+}

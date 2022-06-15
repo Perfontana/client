@@ -1,5 +1,4 @@
 import Player from "./Player";
-import Round from "./Round";
 
 export default interface Room {
   code: string;
@@ -8,7 +7,12 @@ export default interface Room {
   roundTime: number;
   players: Player[];
   isStarted: boolean;
-  rounds: Round[];
+  isEnded: boolean;
+  rounds: {
+    player: string;
+    song: string;
+    sent: boolean;
+  }[][];
+  songs: Record<string, { player: string; url: string }[]>;
   currentRound: number;
-  roundsMap?: string[][];
 }

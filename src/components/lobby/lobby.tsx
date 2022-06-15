@@ -1,34 +1,26 @@
-import { Row, Spin } from "antd";
+import { Button, Row, Spin } from "antd";
+import { toJS, autorun } from "mobx";
 import { observer } from "mobx-react-lite";
-import { FC, useEffect } from "react";
+import { useGameConnection } from "../../hooks/connectToGame";
 import auth from "../../store/auth";
 import game from "../../store/game";
 import LobbyOptions from "./lobby-options/lobby-options";
 import "./lobby.scss";
 import PlayersDisplay from "./players-display/players-display";
 
-const Lobby: FC<{ roomCode: string }> = ({ roomCode }) => {
-  useEffect(() => {
-    game.loadRoom(roomCode);
-    game.connect(auth.token);
-    return () => {
-      game.clear();
-      game.disconnect();
-    };
-  }, [roomCode]);
+const Lobby = () => {
+  useGameConnection();
 
   return (
-    <Row align="middle" justify="center" className="container-fullscreen">
-      <div className="room-lobby-card">
-        {game.loading ? (
-          <Spin />
-        ) : (
-          <>
-            <PlayersDisplay />
-            <LobbyOptions />
-          </>
-        )}
-      </div>
+    <Row align="middle" justify="center" className="room-lobby">
+      {game.loading ? (
+        <Spin size="large" />
+      ) : (
+        <>
+          <LobbyOptions />
+          {game.players.length && <PlayersDisplay />}
+        </>
+      )}
     </Row>
   );
 };

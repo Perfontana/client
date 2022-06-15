@@ -1,10 +1,7 @@
-import { makeObservable, observable } from "mobx";
-import { Merge } from "tone";
+import { action, makeObservable, observable } from "mobx";
 import { Track } from "../audio/Track";
 
 class Tracks {
-  master = new Merge().toDestination();
-
   @observable
   tracks: Track[] = [];
 
@@ -12,16 +9,27 @@ class Tracks {
     makeObservable(this);
   }
 
+  @action
   addTrack() {
     const track = new Track();
 
-    track.channel.connect(this.master);
+    track.channel.toDestination();
 
     this.tracks.push(track);
   }
 
-  removeTrack(track: Track) {
+  @action removeTrack(track: Track) {
+    const samples = [...track.samples];
+
+    samples.forEach((sample) => {
+      sample.remove();
+    });
+
     this.tracks.splice(this.tracks.indexOf(track), 1);
+  }
+
+  @action clear() {
+    this.tracks.forEach((track) => this.removeTrack(track));
   }
 }
 

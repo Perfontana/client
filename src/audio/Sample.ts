@@ -1,10 +1,14 @@
-import { action, computed, makeObservable, observable, toJS } from "mobx";
+import { action, computed, makeObservable, observable } from "mobx";
+import { nanoid } from "nanoid";
 import { Channel, Player, Time, ToneAudioBuffer, ToneAudioNode } from "tone";
-import { samples } from "../store/samples";
+import { audioBuffers } from "../store/audioBuffers";
+import waveforms from "../store/waveforms";
+import decodeArrayBuffer from "../utils/decodeArrayBuffer";
+import loadFile from "../utils/loadFile";
 import { Track } from "./Track";
 
 export class Sample {
-  id = Math.random();
+  id = nanoid(10);
   player: Player;
   @observable public track: Track;
   @observable public loaded = false;
@@ -25,7 +29,7 @@ export class Sample {
   ) {
     this.player = new Player();
     this.player.buffer = buffer;
-    this.player.toDestination().sync().start(position, offset, length);
+    this.player.sync().start(position, offset, length);
 
     this.effectsChain = [this.player];
 
@@ -90,6 +94,7 @@ export class Sample {
   @action connectToTrack(track: Track) {
     this.removeChannel();
     this.track.removeSample(this);
+
     track.addSample(this);
     this.connectChannel(track.channel);
     this.track = track;
@@ -122,8 +127,6 @@ export class Sample {
   }
 
   @action removeEffect(effect: ToneAudioNode) {
-    console.log("Removing effect: ", effect);
-
     const effectIndex = this.effectsChain.indexOf(effect);
 
     if (effectIndex < 0) return;
@@ -144,5 +147,79 @@ export class Sample {
     effect.disconnect(effectAfter);
 
     this.effectsChain.splice(effectIndex, 1);
+  }
+
+  @action
+  cut(cutPosition: number) {
+    const copy = this.copy();
+
+    this.track.addSample(copy);
+
+    const cutSampleLength = cutPosition - this.position;
+
+    this.set({ length: cutSampleLength });
+    copy.set({
+      position: cutPosition,
+      offset: copy.offset + cutSampleLength,
+      length: copy.length - cutSampleLength,
+    });
+
+    return copy;
+  }
+
+  @action
+  remove() {
+    this.player.unsync();
+    this.player.dispose();
+    waveforms.deleteWaveform(this);
+    this.track.removeSample(this);
+  }
+
+  @action
+  static async loadFromUrl(
+    name: string,
+    url: string,
+    track: Track,
+    position = 0
+  ) {
+    const buffer = await audioBuffers.getBuffer(name, url);
+    if (!buffer) return;
+
+    const newSample = new Sample(buffer, track, name, position);
+
+    track.addSample(newSample);
+    newSample.loaded = true;
+
+    return newSample;
+  }
+
+  @action
+  static async loadFromFile(file: File | Blob, track: Track, position = 0) {
+    const name = (file as any).name
+      ? (file as any).name
+      : `Recording ${Date.now()}`;
+
+    let buffer = await audioBuffers.getBuffer(name);
+
+    if (!buffer) {
+      const arrayBuffer = (await loadFile(file)) as ArrayBuffer;
+      const audioBuffer = await decodeArrayBuffer(arrayBuffer);
+
+      audioBuffers.addBuffer(audioBuffer, name);
+
+      buffer = audioBuffer;
+    }
+
+    const newSample = new Sample(
+      buffer as ToneAudioBuffer,
+      track,
+      name,
+      position
+    );
+
+    track.addSample(newSample);
+    newSample.loaded = true;
+
+    return newSample;
   }
 }

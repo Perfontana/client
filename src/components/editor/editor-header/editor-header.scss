@@ -1,0 +1,29 @@
+.editor-header {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.round-time {
+  display: flex;
+  justify-content: center;
+
+  height: 100%;
+  background-color: #d3d3d3;
+
+  transition: flex linear 1s;
+}
+
+.sound-controls {
+  display: flex;
+}
+
+.sound-btn {
+  width: 40px;
+  aspect-ratio: 1 / 1;
+}
+
+.send-btn {
+  background-color: green;
+}

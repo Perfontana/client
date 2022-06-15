@@ -17,16 +17,8 @@ const EditorTrackSamples: FC = () => {
     <TrackLine key={track.id} track={track} />
   ));
 
-  const [seconds, setSeconds] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setSeconds(Transport.seconds);
-    }, 20);
-
-    return () => clearInterval(intervalId);
-  }, []);
+  const [seconds, setSeconds] = useState(0);
 
   const handleClick: MouseEventHandler = useCallback((event) => {
     if (!containerRef.current) return;
@@ -38,6 +30,15 @@ const EditorTrackSamples: FC = () => {
 
       Transport.seconds = ((event.clientX - box.left) / containerWidth) * 30;
     }
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (Transport.seconds >= 30) Transport.seconds = 0;
+      setSeconds(Transport.seconds);
+    }, 20);
+
+    return () => clearInterval(interval);
   }, []);
 
   return (

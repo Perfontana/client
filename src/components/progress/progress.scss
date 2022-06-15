@@ -1,7 +1,9 @@
+@import "../editor/editor-main/editor-main.scss";
+
 .progress {
   position: absolute;
   top: 0;
-  height: 100%;
+  height: calc(100% - $track-height);
   width: 2px;
   background-color: black;
 }

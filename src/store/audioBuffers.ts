@@ -11,6 +11,11 @@ export class AudioBuffers {
   private _buffers: BufferInfo[] = [];
 
   @action
+  addBuffer(buffer: ToneAudioBuffer, name: string, url?: string) {
+    this._buffers.push({ buffer, name, url: url || "" });
+  }
+
+  @action
   getBuffer(
     name: string,
     url?: string
